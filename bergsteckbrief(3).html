@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dein Bergsteckbrief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --dusk:      #143140;
+    --dusk-2:    #1d4254;
+    --glow:      #f0a95c;
+    --glow-soft: #f7c98b;
+    --snow:      #f7f2e8;
+    --snow-dim:  #ece4d3;
+    --pine:      #35564a;
+    --glacier:   #9fc0c2;
+    --rock:      #20262a;
+    --muted:     #6f7d80;
+    --glow-amount: 0;
+    --ease: cubic-bezier(.22,.61,.36,1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Instrument Sans", system-ui, sans-serif;
+    color: var(--rock);
+    background:
+      radial-gradient(120% 80% at 50% 8%,
+        rgba(240,169,92, calc(.10 + var(--glow-amount) * .28)) 0%,
+        rgba(240,169,92,0) 55%),
+      linear-gradient(170deg, var(--dusk) 0%, var(--dusk-2) 48%, #0e2430 100%);
+    background-attachment: fixed;
+    min-height: 100dvh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; overflow-x: hidden;
+  }
+
+  .app { width: 100%; max-width: 460px; position: relative; }
+
+  .screen { display: none; animation: rise .55s var(--ease) both; }
+  .screen.is-active { display: block; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+  .panel {
+    background: var(--snow);
+    border-radius: 22px;
+    padding: 26px 24px 28px;
+    box-shadow: 0 24px 60px -28px rgba(0,0,0,.6);
+  }
+
+  /* height profile header */
+  .profile { position: relative; margin-bottom: 18px; }
+  .profile__svg { display: block; width: 100%; height: auto; }
+  .profile__meta {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-top: 8px; color: var(--snow); font-size: 13px; letter-spacing: .02em;
+  }
+  .profile__count { opacity: .72; }
+  .profile__alt { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .profile__alt span { opacity: .6; font-weight: 400; margin-left: 2px; }
+
+  .trail-base { fill: none; stroke: rgba(255,255,255,.18); stroke-width: 2.4; stroke-linecap: round; }
+  .trail-fill { fill: none; stroke: var(--glow); stroke-width: 2.8; stroke-linecap: round;
+    transition: stroke-dashoffset .7s var(--ease); }
+  .marker { transition: transform .7s var(--ease); }
+
+  /* cover */
+  .cover { text-align: center; }
+  .cover__art { margin: 0 auto 4px; width: 100%; max-width: 360px; display: block; }
+  .cover__eyebrow { text-transform: uppercase; letter-spacing: .22em; font-size: 12px; font-weight: 600; color: var(--pine); margin-bottom: 14px; }
+  .cover__title { font-family: "Fraunces", serif; font-weight: 600; font-size: clamp(30px, 8vw, 42px); line-height: 1.04; letter-spacing: -.01em; margin-bottom: 14px; }
+  .cover__title em { font-style: italic; color: #c8762a; }
+  .cover__lead { color: var(--muted); font-size: 16px; line-height: 1.55; max-width: 38ch; margin: 0 auto 24px; }
+
+  /* question */
+  .q__eyebrow { text-transform: uppercase; letter-spacing: .2em; font-size: 12px; font-weight: 600; color: var(--pine); margin-bottom: 10px; }
+  .q__title { font-family: "Fraunces", serif; font-weight: 600; font-size: clamp(23px, 6vw, 28px); line-height: 1.18; letter-spacing: -.01em; margin-bottom: 20px; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option {
+    font: inherit; text-align: left; cursor: pointer;
+    background: #fff; border: 1.5px solid var(--snow-dim); border-radius: 14px;
+    padding: 15px 16px; display: flex; align-items: center; gap: 13px;
+    transition: border-color .18s ease, background .18s ease, transform .12s ease;
+  }
+  .option:hover { border-color: var(--glacier); }
+  .option:active { transform: scale(.985); }
+  .option:focus-visible { outline: 3px solid var(--glow); outline-offset: 2px; }
+  .option.is-chosen { border-color: var(--glow); background: #fff7ec; }
+  .option__emoji { font-size: 22px; line-height: 1; flex: none; width: 38px; height: 38px; display: grid; place-items: center; background: var(--snow); border-radius: 10px; }
+  .option.is-chosen .option__emoji { background: #fbe6c8; }
+  .option__label { font-size: 15.5px; font-weight: 500; line-height: 1.35; }
+
+  .q__nav { margin-top: 18px; display: flex; }
+  .back { font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; background: none; border: none; color: var(--muted); padding: 6px 4px; }
+  .back:hover { color: var(--rock); }
+  .back:focus-visible { outline: 3px solid var(--glow); outline-offset: 2px; border-radius: 6px; }
+  .back[hidden] { display: none; }
+
+  /* result */
+  .result__eyebrow { text-transform: uppercase; letter-spacing: .2em; font-size: 12px; font-weight: 600; color: var(--pine); margin-bottom: 12px; }
+  .result__title { font-family: "Fraunces", serif; font-weight: 600; font-size: clamp(26px, 7vw, 34px); line-height: 1.08; margin-bottom: 6px; }
+  .result__lead { color: var(--muted); font-size: 15px; line-height: 1.5; margin-bottom: 20px; }
+
+  .summary { list-style: none; display: flex; flex-direction: column; gap: 1px; background: var(--snow-dim); border-radius: 14px; overflow: hidden; margin-bottom: 22px; }
+  .summary__row { background: var(--snow); padding: 12px 15px; display: flex; gap: 12px; align-items: center; }
+  .summary__icon { font-size: 18px; flex: none; }
+  .summary__text { display: flex; flex-direction: column; gap: 1px; }
+  .summary__q { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .summary__a { font-size: 15px; font-weight: 500; }
+
+  .actions { display: flex; flex-direction: column; gap: 10px; }
+  .btn {
+    font: inherit; font-weight: 600; font-size: 16px; cursor: pointer; border-radius: 13px;
+    padding: 15px 18px; border: none; display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+    transition: transform .12s ease, filter .18s ease; text-decoration: none;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn:focus-visible { outline: 3px solid var(--glow); outline-offset: 2px; }
+  .btn--wa { background: #1fae54; color: #fff; }
+  .btn--wa:hover { filter: brightness(1.05); }
+  .btn--mail { background: var(--rock); color: var(--snow); }
+  .btn--copy { background: #fff; color: var(--rock); border: 1.5px solid var(--snow-dim); }
+  .btn--copy:hover { border-color: var(--glacier); }
+  .btn[hidden] { display: none; }
+
+  .result__note { text-align: center; margin-top: 16px; }
+  .restart { background: none; border: none; color: var(--muted); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
+  .restart:hover { color: var(--rock); }
+
+  @media (prefers-reduced-motion: reduce) { *, .screen { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+  <div class="app" id="app"></div>
+
+<script>
+/* ============================================================
+   1) HIER ANPASSEN, deine Angaben
+   ============================================================ */
+const CONFIG = {
+  fromName: "Bergführer Sam",
+  friendName: "Greta",
+  // WhatsApp-Nummer fuer die Rueckmeldung, international ohne + und ohne 0:
+  whatsapp: "41765478995",
+  // E-Mail (leer lassen "" blendet den Mail-Button aus):
+  email: ""
+};
+
+/* ============================================================
+   2) Die 9 Fragen
+   ============================================================ */
+const QUESTIONS = [
+  {
+    summary: "Technik",
+    title: "Wie anspruchsvoll darf das Gelände sein?",
+    options: [
+      { emoji: "🥾", label: "Markierte Bergwege (T2 bis T3)" },
+      { emoji: "🧗", label: "Etwas alpiner, auch mal mit den Händen (T4)" },
+      { emoji: "🎲", label: "Überrasch mich" },
+    ],
+  },
+  {
+    summary: "Ausdauer",
+    title: "Wie lang soll der Aufstieg mindestens sein?",
+    options: [
+      { emoji: "🌄", label: "3 bis 4 Stunden" },
+      { emoji: "⛰️", label: "4 bis 6 Stunden" },
+      { emoji: "🔥", label: "6 bis 8 Stunden" },
+      { emoji: "💪", label: "Egal, ich bin fit genug" },
+    ],
+  },
+  {
+    summary: "Übernachtung",
+    title: "Wo übernachten wir?",
+    options: [
+      { emoji: "🏔️", label: "In einer SAC Hütte" },
+      { emoji: "⛺", label: "Im Zelt draussen" },
+      { emoji: "✨", label: "Egal, entscheide du" },
+    ],
+  },
+  {
+    summary: "Gletscher",
+    title: "Lust, einen Gletscher zu betreten?",
+    options: [
+      { emoji: "🧊", label: "Ja, erste Gletschererfahrung sammeln" },
+      { emoji: "🤔", label: "Nur wenn es sicher machbar ist" },
+      { emoji: "🚫", label: "Lieber nicht" },
+    ],
+  },
+  {
+    summary: "Höhe",
+    title: "Wie ist es mit Höhe und Abgründen?",
+    options: [
+      { emoji: "🛤️", label: "Lieber nicht zu ausgesetzt" },
+      { emoji: "😌", label: "Etwas Ausgesetztheit ist okay" },
+      { emoji: "🦅", label: "Macht mir nichts aus" },
+    ],
+  },
+  {
+    summary: "Region",
+    title: "Hast du eine Region im Kopf?",
+    options: [
+      { emoji: "🏔️", label: "Berner Oberland" },
+      { emoji: "⛰️", label: "Glarnerland" },
+      { emoji: "🏞️", label: "Graubünden oder Engadin" },
+      { emoji: "🗺️", label: "Keine Präferenz, such du aus" },
+    ],
+  },
+  {
+    summary: "Route",
+    title: "Wie soll die Route verlaufen?",
+    options: [
+      { emoji: "🔄", label: "Rundtour" },
+      { emoji: "↩️", label: "Gleicher Weg zurück ist okay" },
+      { emoji: "🧭", label: "Egal, das planst du" },
+    ],
+  },
+  {
+    summary: "Highlight",
+    title: "Worauf freust du dich am meisten?",
+    options: [
+      { emoji: "🏔️", label: "Ein Gipfel" },
+      { emoji: "💎", label: "Ein Bergsee" },
+      { emoji: "🌅", label: "Die Aussicht" },
+      { emoji: "🧘", label: "Ruhe und Natur" },
+    ],
+  },
+  {
+    summary: "Ausrüstung",
+    title: "Wie sieht's mit Ausrüstung aus?",
+    options: [
+      { emoji: "🎒", label: "Hab Wanderschuhe und Rucksack" },
+      { emoji: "🧦", label: "Hab das Nötigste, ergänze gern" },
+      { emoji: "📝", label: "Brauch eine Liste" },
+    ],
+  },
+];
+
+/* ============================================================
+   3) Ab hier nichts mehr anpassen.
+   ============================================================ */
+const ALT_VALLEY = 560;
+const ALT_SUMMIT = 2500;
+const TRAIL_D = "M 18 116 C 70 112, 86 92, 132 88 S 196 74, 236 64 S 318 44, 384 26";
+
+const state = { step: -1, answers: {} };
+const app = document.getElementById("app");
+
+function chf(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "\u2019"); }
+
+function profileHeader(fraction) {
+  const alt = ALT_VALLEY + fraction * (ALT_SUMMIT - ALT_VALLEY);
+  const answered = Math.round(fraction * QUESTIONS.length);
+  return `
+    <div class="profile">
+      <svg class="profile__svg" viewBox="0 0 400 130" aria-hidden="true">
+        <defs>
+          <linearGradient id="ridge" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#2a4d50"/><stop offset="1" stop-color="#16323b"/>
+          </linearGradient>
+        </defs>
+        <path d="M0 130 L0 84 L70 50 L120 78 L180 38 L250 70 L320 30 L400 60 L400 130 Z" fill="url(#ridge)" opacity="0.55"/>
+        <path d="M0 130 L0 104 L60 86 L150 100 L230 80 L330 96 L400 82 L400 130 Z" fill="#0f2630" opacity="0.7"/>
+        <path class="trail-base" d="${TRAIL_D}"/>
+        <path class="trail-fill" id="trailFill" d="${TRAIL_D}"/>
+        <g class="marker" id="marker"><circle r="6.5" fill="#fff"/><circle r="3.4" fill="var(--glow)"/></g>
+      </svg>
+      <div class="profile__meta">
+        <span class="profile__count">Etappe ${answered} von ${QUESTIONS.length}</span>
+        <span class="profile__alt">${chf(alt)} m<span>ü. M.</span></span>
+      </div>
+    </div>`;
+}
+
+function positionTrail(fraction) {
+  const fill = document.getElementById("trailFill");
+  const marker = document.getElementById("marker");
+  if (!fill) return;
+  const len = fill.getTotalLength();
+  fill.style.strokeDasharray = len;
+  fill.style.strokeDashoffset = len * (1 - fraction);
+  const pt = fill.getPointAtLength(len * fraction);
+  marker.style.transform = `translate(${pt.x}px, ${pt.y}px)`;
+  document.documentElement.style.setProperty("--glow-amount", fraction.toFixed(2));
+}
+
+function renderCover() {
+  app.innerHTML = `
+    <div class="screen is-active">
+      <div class="panel cover">
+        <svg class="cover__art" viewBox="0 0 360 150" aria-hidden="true">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#f7c98b"/><stop offset="1" stop-color="#f0a95c"/>
+            </linearGradient>
+          </defs>
+          <circle cx="180" cy="70" r="34" fill="url(#sky)" opacity="0.9"/>
+          <path d="M0 150 L0 96 L70 44 L120 84 L150 60 L210 110 L150 150 Z" fill="#35564a"/>
+          <path d="M150 150 L210 70 L255 108 L300 52 L360 96 L360 150 Z" fill="#2a4d50"/>
+          <path d="M196 92 L210 70 L224 92 Z" fill="#f7f2e8"/>
+          <path d="M288 70 L300 52 L312 70 Z" fill="#f7f2e8"/>
+        </svg>
+        <p class="cover__eyebrow">Ein Geschenk von Bergführer Sam</p>
+        <h1 class="cover__title">Pack die Wanderschuhe, Greta. Wir gehen in die <em>Berge</em>.</h1>
+        <p class="cover__lead">Du bekommst eine Bergtour mit Übernachtung geschenkt. Beantworte ein paar Fragen, dann passt sie genau zu dir.</p>
+        <button class="btn btn--mail" id="start">Los geht's</button>
+      </div>
+    </div>`;
+  document.getElementById("start").onclick = () => { state.step = 0; renderQuestion(); };
+}
+
+function renderQuestion() {
+  const i = state.step;
+  const q = QUESTIONS[i];
+  const fraction = i / QUESTIONS.length;
+  const chosen = state.answers[i];
+
+  app.innerHTML = `
+    <div class="screen is-active">
+      <div class="panel">
+        ${profileHeader(fraction)}
+        <p class="q__eyebrow">Frage ${i + 1} von ${QUESTIONS.length}</p>
+        <h2 class="q__title">${q.title}</h2>
+        <div class="options" role="group" aria-label="${q.title}">
+          ${q.options.map((o, idx) => `
+            <button class="option ${chosen === idx ? "is-chosen" : ""}" data-idx="${idx}">
+              <span class="option__emoji">${o.emoji}</span>
+              <span class="option__label">${o.label}</span>
+            </button>`).join("")}
+        </div>
+        <div class="q__nav">
+          <button class="back" id="back" ${i === 0 ? "hidden" : ""}>Eine Etappe zurück</button>
+        </div>
+      </div>
+    </div>`;
+
+  requestAnimationFrame(() => positionTrail(fraction));
+
+  app.querySelectorAll(".option").forEach((btn) => {
+    btn.onclick = () => {
+      const idx = +btn.dataset.idx;
+      state.answers[i] = idx;
+      app.querySelectorAll(".option").forEach((b) => b.classList.remove("is-chosen"));
+      btn.classList.add("is-chosen");
+      positionTrail((i + 1) / QUESTIONS.length);
+      const delay = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 360;
+      setTimeout(() => {
+        if (state.step < QUESTIONS.length - 1) { state.step++; renderQuestion(); }
+        else { renderResult(); }
+      }, delay);
+    };
+  });
+
+  const back = document.getElementById("back");
+  if (back) back.onclick = () => { state.step--; renderQuestion(); };
+}
+
+function buildMessage() {
+  const lines = QUESTIONS.map((q, i) => {
+    const o = q.options[state.answers[i]];
+    return `${o.emoji} ${q.summary}: ${o.label}`;
+  });
+  const who = CONFIG.friendName ? `${CONFIG.friendName}s` : "Mein";
+  return `${who} Bergsteckbrief\n\n${lines.join("\n")}\n\nIch freue mich auf unsere Tour!`;
+}
+
+function renderResult() {
+  const greetName = CONFIG.friendName ? `${CONFIG.friendName}, ` : "";
+  const rows = QUESTIONS.map((q, i) => {
+    const o = q.options[state.answers[i]];
+    return `<li class="summary__row">
+      <span class="summary__icon">${o.emoji}</span>
+      <span class="summary__text">
+        <span class="summary__q">${q.summary}</span>
+        <span class="summary__a">${o.label}</span>
+      </span></li>`;
+  }).join("");
+
+  app.innerHTML = `
+    <div class="screen is-active">
+      <div class="panel">
+        ${profileHeader(1)}
+        <p class="result__eyebrow">Gipfel erreicht 🚩</p>
+        <h2 class="result__title">${greetName}das wird deine Tour.</h2>
+        <p class="result__lead">Hier ist dein Steckbrief. Schick ihn ${CONFIG.fromName} zurück, dann plant er daraus deine Tour.</p>
+        <ul class="summary">${rows}</ul>
+        <div class="actions">
+          <a class="btn btn--wa" id="wa" hidden>Per WhatsApp schicken</a>
+          <a class="btn btn--mail" id="mail" hidden>Per E-Mail schicken</a>
+          <button class="btn btn--copy" id="copy">Antworten kopieren</button>
+        </div>
+        <p class="result__note"><button class="restart" id="restart">Nochmal von vorne</button></p>
+      </div>
+    </div>`;
+
+  requestAnimationFrame(() => positionTrail(1));
+  const msg = buildMessage();
+
+  const wa = document.getElementById("wa");
+  if (CONFIG.whatsapp) {
+    wa.hidden = false;
+    wa.href = `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`;
+    wa.target = "_blank"; wa.rel = "noopener";
+  }
+  const mail = document.getElementById("mail");
+  if (CONFIG.email) {
+    mail.hidden = false;
+    mail.href = `mailto:${CONFIG.email}?subject=${encodeURIComponent("Mein Bergsteckbrief")}&body=${encodeURIComponent(msg)}`;
+  }
+  const copy = document.getElementById("copy");
+  copy.onclick = async () => {
+    try { await navigator.clipboard.writeText(msg); copy.textContent = "Kopiert"; }
+    catch { copy.textContent = "Bitte von Hand markieren und kopieren"; }
+    setTimeout(() => { copy.textContent = "Antworten kopieren"; }, 2200);
+  };
+  document.getElementById("restart").onclick = () => { state.step = -1; state.answers = {}; renderCover(); };
+}
+
+renderCover();
+</script>
+</body>
+</html>
